@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>SGB XI Preisrechner</title>
+    <style>
+        table { border-collapse: collapse; width: 100%; margin: 20px 0; }
+        th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+        th { background-color: #f2f2f2; }
+        .highlight { background-color: #ffeb99; }
+    </style>
+</head>
+<body>
+    <h1>Preisrechner für Leistungskomplexe SGB XI</h1>
+    
+    <form id="preisrechner">
+        <div>
+            <label for="lk15">Preis LK15 (Hausbesuchspauschale):</label>
+            <input type="number" id="lk15" value="6.08" step="0.01" required>
+        </div>
+        
+        <div>
+            <label for="lk15a">Preis LK15a (erhöhte Hausbesuchspauschale):</label>
+            <input type="number" id="lk15a" value="7.58" step="0.01" required>
+        </div>
+        
+        <div>
+            <label for="punktwert">Individueller Punktwert:</label>
+            <input type="number" id="punktwert" value="0.06608" step="0.00001" required>
+        </div>
+        
+        <div>
+            <label for="zuschlag">Refinanzierungsaufschlag (z.B. Ausbildungszuschlag):</label>
+            <input type="number" id="zuschlag" value="0.00449" step="0.00001" required>
+        </div>
+        
+        <button type="submit">Preise berechnen</button>
+    </form>
+
+    <div id="ergebnis"></div>
+
+<script>
+document.getElementById('preisrechner').addEventListener('submit', function(e) {
+    e.preventDefault();
+    
+    // Eingabewerte
+    const lk15 = parseFloat(document.getElementById('lk15').value);
+    const lk15a = parseFloat(document.getElementById('lk15a').value);
+    const punktwert = parseFloat(document.getElementById('punktwert').value);
+    const zuschlag = parseFloat(document.getElementById('zuschlag').value);
+    
+    // Gesamtpunktwert
+    const gesamtpunkt = punktwert + zuschlag;
+    
+    // Leistungskomplexe-Datenbank
+    const lkDaten = [
+        { id: 'LK 01', punkte: 426, name: 'Ganzwaschung' },
+        { id: 'LK 02', punkte: 228, name: 'Teilwaschung' },
+        { id: 'LK 03', punkte: 104, name: 'Ausscheidungen' },
+        { id: 'LK 04', punkte: 104, name: 'Selbstständige Nahrungsaufnahme' },
+        { id: 'LK 05', punkte: 260, name: 'Hilfe bei der Nahrungsaufnahme' },
+        { id: 'LK 06', punkte: 104, name: 'Sondenernährung' },
+        { id: 'LK 07', punkte: 104, name: 'Lagern/Betten' },
+        { id: 'LK 08', punkte: 187, name: 'Mobilisation' },
+        { id: 'LK 09', punkte: 360, name: 'Arztbesuche' },
+        { id: 'LK 10', punkte: 60, name: 'Beheizen des Wohnbereiches' },
+        { id: 'LK 11', punkte: 150, name: 'Einkaufen' },
+        { id: 'LK 12', punkte: 150, name: 'Zubereiten von warmen Speisen' },
+        { id: 'LK 13', punkte: 540, name: 'Aufräumen und Reinigen' },
+        { id: 'LK 14', punkte: 360, name: 'Waschen u. Pflegen der Wäsche' },
+        { id: 'LK 15', punkte: 0, name: 'Hausbesuchspauschale', fix: lk15 },
+        { id: 'LK 15a', punkte: 0, name: 'Erhöhte Hausbesuchspauschale', fix: lk15a },
+        { id: 'LK 16', punkte: 1600, name: 'Erstgespräch' },
+        { id: 'LK 16a', punkte: 900, name: 'Folgebesuch' },
+        { id: 'LK 17', punkte: 1350, name: 'Beratungsbesuch' },
+        { id: 'LK 18', punkte: 633, name: 'Große Grundpflege' },
+        { id: 'LK 19', punkte: 467, name: 'Grundpflege' },
+        { id: 'LK 20', punkte: 467, name: 'Kleine Grundpflege' },
+        { id: 'LK 21', punkte: 301, name: 'Kleine Grundpflege' },
+        { id: 'LK 22', punkte: 760, name: 'Große Hauswirtschaft' },
+        { id: 'LK 23', punkte: 540, name: 'Grundpflege' },
+        { id: 'LK 24', punkte: 768, name: 'Grundpflege' },
+        { id: 'LK 25', punkte: 363, name: 'Grundpflege' },
+        { id: 'LK 26', punkte: 602, name: 'Grundpflege' },
+        { id: 'LK 27', punkte: 104, name: 'Hilfestellung 1' },
+        { id: 'LK 28', punkte: 104, name: 'Hilfestellung 2' },
+        { id: 'LK 29', punkte: 176, name: 'Hilfestellung 3' },
+        { id: 'LK 30', punkte: 80, name: 'Hilfestellung 4' },
+        { id: 'LK 31', punkte: 625, name: 'Pflegerische Betreuung', typ: 'pro Minute' },
+        { id: 'LK 32', punkte: 625, name: 'Haushaltsführung', typ: 'pro Minute' },
+        { id: 'LK 33', punkte: 625, name: 'Hauswirtschaft', typ: 'pro Minute' }
+    ];
+
+    // Erzeuge Tabelle
+    let html = '<table>';
+    html += '<tr><th>Leistungskomplex</th><th>Punkte</th><th>Preis</th></tr>';
+    
+    lkDaten.forEach(lk => {
+        let preis;
+        
+        if (lk.fix !== undefined) {
+            preis = lk.fix.toFixed(2) + ' €';
+        } else if (lk.typ === 'pro Minute') {
+            preis = (lk.punkte * gesamtpunkt).toFixed(2) + ' €/Min';
+        } else {
+            preis = (lk.punkte * gesamtpunkt).toFixed(2) + ' €';
+        }
+        
+        html += `<tr>
+            <td>${lk.id}</td>
+            <td>${lk.punkte}</td>
+            <td>${preis}</td>
+        </tr>`;
+    });
+    
+    html += '</table>';
+    
+    document.getElementById('ergebnis').innerHTML = html;
+});
+</script>
+</body>
+</html>
